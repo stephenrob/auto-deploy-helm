@@ -1,10 +1,8 @@
 import {
   Auto,
-  // determineNextVersion,
   execPromise,
   IPlugin,
   getCurrentBranch,
-  // DEFAULT_PRERELEASE_BRANCHES,
   validatePluginConfiguration
 } from "@auto-it/core";
 import * as t from "io-ts";
@@ -38,14 +36,6 @@ export default class HelmPlugin implements IPlugin {
 
   apply(auto: Auto) {
 
-    // async function getTag() {
-    //   try {
-    //     return await auto.git!.getLatestTagInBranch();
-    //   } catch (error) {
-    //     return auto.prefixRelease("0.0.0")
-    //   }
-    // }
-
     auto.hooks.validateConfig.tapPromise(this.name, async(name, options) => {
       if (name === this.name) {
         return validatePluginConfiguration(this.name, pluginOptions, options)
@@ -63,14 +53,7 @@ export default class HelmPlugin implements IPlugin {
     });
 
     auto.hooks.getPreviousVersion.tapPromise(this.name, async() => {
-      // if (!auto.git) {
-      //   throw new Error(
-      //     "Can't calculate previous version without Git initialized"
-      //   );
-      // }
-
       const version = await this.getVersion(auto)
-
       return version;
     });
 
@@ -81,8 +64,6 @@ export default class HelmPlugin implements IPlugin {
           return;
         }
 
-        // const lastTag = await getTag();
-        // const newTag = inc(lastTag, bump as ReleaseType);
         const [lastTag, newTag] = await this.getNewVersion(auto, bump as ReleaseType);
 
         if (dryRun && newTag) {
@@ -112,32 +93,6 @@ export default class HelmPlugin implements IPlugin {
           this.calculatedTags.push("latest");
         }
 
-        // await execPromise("git", [
-        //   "tag",
-        //   prefixedTag,
-        //   "-m",
-        //   `"Update version to ${prefixedTag}"`,
-        // ]);
-
-        // await execPromise("helm", [
-        //   "chart",
-        //   "save",
-        //   `${this.options.chartPath}`,
-        //   `${this.options.registry}/${this.options.chart}:${newTag}`
-        // ])
-
-        // this.calculatedTags = [newTag];
-
-        // if (this.options.tagLatest === true && !bump.startsWith("pre")) {
-        //   await execPromise("helm", [
-        //     "chart",
-        //     "save",
-        //     `${this.options.chartPath}`,
-        //     `${this.options.registry}/${this.options.chart}:latest`
-        //   ])
-        //   this.calculatedTags.push("latest")
-        // }
-
       }
     );
 
@@ -149,10 +104,6 @@ export default class HelmPlugin implements IPlugin {
         }
 
         const [current, nextVersion] = await this.getNewVersion(auto, bump as ReleaseType);
-
-        // const lastRelease = await auto.git.getLatestRelease();
-        // const current = await auto.getCurrentVersion(lastRelease);
-        // const nextVersion = inc(current, bump as ReleaseType);
         const canaryVersion = `${nextVersion}${canaryIdentifier}`
 
         if (dryRun) {
@@ -188,59 +139,6 @@ export default class HelmPlugin implements IPlugin {
 
       }
     );
-
-    // auto.hooks.next.tapPromise(
-    //   this.name,
-    //   async (preReleaseVersions, { bump, dryRun }) => {
-    //     if (!auto.git) {
-    //       return preReleaseVersions;
-    //     }
-
-    //     const prereleaseBranches = auto.config?.prereleaseBranches ?? DEFAULT_PRERELEASE_BRANCHES;
-    //     const branch = getCurrentBranch() || "";
-    //     const prereleaseBranch = prereleaseBranches.includes(branch) ? branch : prereleaseBranches[0]
-    //     const lastRelease = await auto.git.getLatestRelease();
-    //     const current =
-    //       (await auto.git.getLastTagNotInBaseBranch(prereleaseBranch)) ||
-    //       (await auto.getCurrentVersion(lastRelease))
-    //     const prerelease = determineNextVersion(
-    //       lastRelease,
-    //       current,
-    //       bump,
-    //       prereleaseBranch
-    //     );
-        
-    //     preReleaseVersions.push(prerelease);
-
-    //     if (dryRun) {
-    //       return preReleaseVersions;
-    //     }
-
-    //     await execPromise("git", [
-    //       "tag",
-    //       prerelease,
-    //       "-m",
-    //       `"Tag pre-release: ${prerelease}"`,
-    //     ]);
-
-    //     await execPromise("helm", [
-    //       "chart",
-    //       "save",
-    //       `${this.options.chartPath}`,
-    //       `${this.options.registry}/${this.options.chart}:${prerelease}`
-    //     ])
-
-    //     await execPromise("helm", [
-    //       "chart",
-    //       "push",
-    //       `${this.options.registry}/${this.options.chart}:${prerelease}`
-    //     ]);
-
-    //     await execPromise("git", ["push", auto.remote, branch, "--tags"]);
-
-    //     return preReleaseVersions;
-    //   }
-    // );
 
     auto.hooks.publish.tapPromise(this.name, async() => {
       auto.logger.log.info("Pushing new tag to GitHub");
