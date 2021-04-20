@@ -38,13 +38,13 @@ export default class HelmPlugin implements IPlugin {
 
   apply(auto: Auto) {
 
-    async function getTag() {
-      try {
-        return await auto.git!.getLatestTagInBranch();
-      } catch (error) {
-        return auto.prefixRelease("0.0.0")
-      }
-    }
+    // async function getTag() {
+    //   try {
+    //     return await auto.git!.getLatestTagInBranch();
+    //   } catch (error) {
+    //     return auto.prefixRelease("0.0.0")
+    //   }
+    // }
 
     auto.hooks.validateConfig.tapPromise(this.name, async(name, options) => {
       if (name === this.name) {
@@ -148,12 +148,12 @@ export default class HelmPlugin implements IPlugin {
           return;
         }
 
-        const [_current, nextVersion] = await this.getNewVersion(auto, bump as ReleaseType);
+        const [current, nextVersion] = await this.getNewVersion(auto, bump as ReleaseType);
 
         // const lastRelease = await auto.git.getLatestRelease();
         // const current = await auto.getCurrentVersion(lastRelease);
         // const nextVersion = inc(current, bump as ReleaseType);
-        const canaryVersion = `${nextVersion}-${canaryIdentifier}`
+        const canaryVersion = `${nextVersion}${canaryIdentifier}`
 
         if (dryRun) {
           if (quiet) {
@@ -164,6 +164,8 @@ export default class HelmPlugin implements IPlugin {
 
           return;
         }
+
+        await this.writeNewVersion(current, nextVersion, `${this.options.chartPath}/Chart.yaml`);
 
         await execPromise("helm", [
           "chart",
@@ -306,7 +308,8 @@ export default class HelmPlugin implements IPlugin {
 
   private async writeNewVersion(version: string, newVersion: string, chartFile: string) {
     let content = await readFile(chartFile, { encoding: "utf8" });
-    await writeFile(chartFile, content.replace(`version: ${version}`, `version: ${newVersion}`));
+    let replaced = content.replace(`version: ${version}`, `version: ${newVersion}`)
+    await writeFile(chartFile, replaced);
   }
 
   private async getVersion(auto: Auto) {
