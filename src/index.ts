@@ -143,26 +143,26 @@ export default class HelmPlugin implements IPlugin {
     auto.hooks.publish.tapPromise(this.name, async() => {
       auto.logger.log.info("Pushing new tag to GitHub");
 
-      await Promise.all(
-        this.calculatedTags!.map((tag) =>
-          execPromise("helm", [
-            "chart",
-            "save",
-            `${this.options.chartPath}`,
-            `${this.options.registry}/${this.options.chart}:${tag}`
-          ])
-        )
-      )
+      await this.calculatedTags!.forEach(async(tag) => {
+        await execPromise("helm", [
+          "chart",
+          "save",
+          `${this.options.chartPath}`,
+          `${this.options.registry}/${this.options.chart}:${tag}`
+        ]).catch((error) => {
+          auto.logger.log.info(`Failed to save helm chart for tag: ${tag}`)
+        })
+      });
 
-      await Promise.all(
-        this.calculatedTags!.map((tag) => 
-          execPromise("helm", [
-            "chart",
-            "push",
-            `${this.options.registry}/${this.options.chart}:${tag}`
-          ])
-        )
-      );
+      await this.calculatedTags!.forEach(async(tag) => {
+        await execPromise("helm", [
+          "chart",
+          "push",
+          `${this.options.registry}/${this.options.chart}:${tag}`
+        ]).catch((error) => {
+          auto.logger.log.info(`Failed to publish helm chart for tag: ${tag}`)
+        })
+      });
 
       await execPromise("git", [
         "push",
